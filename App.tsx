@@ -44,18 +44,16 @@ function AppContent() {
   const saldo = transactions.reduce((acc, t) => acc + t.amount, 0);
 
   useEffect(() => {
-    if (Platform.OS === 'android') {
-      const checkIsSupported = async () => {
-        const deviceIsSupported = await NfcManager.isSupported();
+    const checkIsSupported = async () => {
+      const deviceIsSupported = await NfcManager.isSupported();
 
-        setHasNFC(deviceIsSupported);
-        if (deviceIsSupported) {
-          await NfcManager.start();
-        }
-      };
+      setHasNFC(deviceIsSupported);
+      if (deviceIsSupported) {
+        await NfcManager.start();
+      }
+    };
 
-      checkIsSupported();
-    }
+    checkIsSupported();
   }, []);
 
   useEffect(() => {
@@ -87,6 +85,7 @@ function AppContent() {
     }
     try {
       await NfcManager.requestTechnology(NfcTech.Ndef);
+      console.log('NFC emulação iniciada');
       // Dados do cartão
       const cardData = {
         nome: 'MARCEL CLIENTE',
@@ -97,6 +96,7 @@ function AppContent() {
       const bytes = Ndef.encodeMessage([
         Ndef.textRecord(JSON.stringify(cardData)),
       ]);
+      console.log('Card data bytes:', bytes);
       if (bytes) {
         await NfcManager.ndefHandler.writeNdefMessage(bytes);
         Alert.alert('NFC', 'Mensagem NFC escrita!');
