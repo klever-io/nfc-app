@@ -50,8 +50,15 @@ function AppContent() {
       const NfcManager = nfcRef.current;
       const { NfcTech, Ndef } = require('react-native-nfc-manager');
       await NfcManager.requestTechnology(NfcTech.Ndef);
+      // Dados do cartão
+      const cardData = {
+        nome: 'MARCEL CLIENTE',
+        numero: '1234 5678 9012 3456',
+        validade: '12/30',
+        saldo: saldo.toFixed(2),
+      };
       const bytes = Ndef.encodeMessage([
-        Ndef.textRecord(`Saldo: R$ ${saldo.toFixed(2)}`),
+        Ndef.textRecord(JSON.stringify(cardData)),
       ]);
       if (bytes) {
         await NfcManager.ndefHandler.writeNdefMessage(bytes);
@@ -80,6 +87,11 @@ function AppContent() {
       if (tag.ndefMessage && tag.ndefMessage.length > 0) {
         const ndefRecord = tag.ndefMessage[0];
         text = Ndef.text.decodePayload(ndefRecord.payload);
+        // Tentar decodificar JSON
+        try {
+          const data = JSON.parse(text);
+          text = `Nome: ${data.nome}\nNúmero: ${data.numero}\nValidade: ${data.validade}\nSaldo: R$ ${data.saldo}`;
+        } catch {}
       } else {
         text = 'Nenhum dado NDEF encontrado.';
       }
@@ -95,14 +107,21 @@ function AppContent() {
 
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>  
-      <View style={styles.logoContainer}>
+      {/* <View style={styles.logoContainer}>
         <NFCLogo width={80} height={80} />
-          {/* <Text style={styles.title}>Carteira NFC</Text>  */}
-      </View>
-      <View style={styles.saldoContainer}>
-        <Text style={styles.saldoLabel}>Saldo disponível</Text>
-      </View>
-      <Text style={styles.saldoValor}>R$ {saldo.toFixed(2)}</Text>
+      </View> */}
+          <View style={styles.saldoContainer}>
+            <Text style={styles.saldoLabel}>Saldo disponível</Text>
+          </View>
+          <Text style={styles.saldoValor}>R$ {saldo.toFixed(2)}</Text>
+      {Platform.OS === 'ios' && (
+        <View style={styles.cardBox}>
+          <Text style={styles.cardTitle}>Cartão NFC Virtual</Text>
+          <Text style={styles.cardInfo}>Número: 1234 5678 9012 3456</Text>
+          <Text style={styles.cardInfo}>Nome: MARCEL CLIENTE</Text>
+          <Text style={styles.cardInfo}>Validade: 12/30</Text>
+        </View>
+      )}
       <Text style={styles.transacoesTitulo}>Transações recentes</Text>
       <FlatList
         data={transactions}
@@ -126,14 +145,16 @@ function AppContent() {
           </TouchableOpacity>
         )}
       />
-      <View style={styles.nfcButtonWrapperRow}>
-        <TouchableOpacity style={[styles.nfcButton, styles.nfcButtonFlex]} onPress={emulateCard} activeOpacity={0.8}>
-          <Text style={styles.nfcButtonText}>Ativar NFC</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]} onPress={readNfc} activeOpacity={0.8}>
-          <Text style={styles.nfcButtonText}>Ler NFC</Text>
-        </TouchableOpacity>
-      </View>
+      {Platform.OS === 'android' && (
+        <View style={styles.nfcButtonWrapperRow}>
+          <TouchableOpacity style={[styles.nfcButton, styles.nfcButtonFlex]} onPress={emulateCard} activeOpacity={0.8}>
+            <Text style={styles.nfcButtonText}>Ativar NFC</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]} onPress={readNfc} activeOpacity={0.8}>
+            <Text style={styles.nfcButtonText}>Ler NFC</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {nfcContent && (
         <View style={styles.nfcContentBox}>
           <Text style={styles.nfcContentLabel}>Conteúdo lido via NFC:</Text>
@@ -145,6 +166,20 @@ function AppContent() {
 }
 
 const styles = StyleSheet.create({
+  cardBox: {
+    backgroundColor: '#23263A',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'flex-start',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardTitle: { color: '#2DE2E6', fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+  cardInfo: { color: '#fff', fontSize: 12, marginBottom: 4, letterSpacing: 1.1 },
   nfcButtonFlex: { flex: 1 },
   container: { flex: 1, backgroundColor: '#181A20', paddingHorizontal: 20 },
   logoContainer: { alignItems: 'center', marginTop: 24, marginBottom: 16 },
