@@ -158,24 +158,24 @@ function AppContent() {
           </TouchableOpacity>
         )}
       />
-      {Platform.OS === 'android' && (
-        <View style={styles.nfcButtonWrapperRow}>
-          <TouchableOpacity
-            style={[styles.nfcButton, styles.nfcButtonFlex]}
-            onPress={emulateCard}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.nfcButtonText}>Ativar NFC</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
-            onPress={readTag}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.nfcButtonText}>Ler NFC</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+
+      <View style={styles.nfcButtonWrapperRow}>
+        <TouchableOpacity
+          style={[styles.nfcButton, styles.nfcButtonFlex]}
+          onPress={emulateCard}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.nfcButtonText}>Ativar NFC</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
+          onPress={readTag}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.nfcButtonText}>Ler NFC</Text>
+        </TouchableOpacity>
+      </View>
+
       {nfcContent && (
         <View style={styles.nfcContentBox}>
           <Text style={styles.nfcContentLabel}>Conteúdo lido via NFC:</Text>
