@@ -39,7 +39,8 @@ function App() {
 
 function AppContent() {
   const safeAreaInsets = useSafeAreaInsets();
-  const [_, setHasNFC] = useState(false);
+  const [hasNFC, setHasNFC] = useState(false);
+  const [nfcIsEnabled, setNfcIsEnabled] = useState(false);
   const [nfcContent, setNfcContent] = useState<string | null>(null);
   const saldo = transactions.reduce((acc, t) => acc + t.amount, 0);
 
@@ -48,21 +49,23 @@ function AppContent() {
       const deviceIsSupported = await NfcManager.isSupported();
 
       setHasNFC(deviceIsSupported);
+      console.log('NFC supported:', deviceIsSupported);
       if (deviceIsSupported) {
         await NfcManager.start();
+        NfcManager.isEnabled()
+          .then(setNfcIsEnabled)
+          .catch(() => setNfcIsEnabled(false));
+
+        NfcManager.setEventListener(NfcEvents.DiscoverTag, (tag: any) => {
+          console.log('tag found', tag);
+          setNfcContent(`${tag}`);
+        });
       }
     };
 
     checkIsSupported();
-  }, []);
-
-  useEffect(() => {
-    NfcManager.setEventListener(NfcEvents.DiscoverTag, (tag: any) => {
-      console.log('tag found', tag);
-      setNfcContent(`${tag}`);
-    });
-
     return () => {
+      setNfcIsEnabled(false);
       NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
     };
   }, []);
@@ -84,6 +87,7 @@ function AppContent() {
       return;
     }
     try {
+      console.log('Iniciando emulação NFC...');
       await NfcManager.requestTechnology(NfcTech.Ndef);
       console.log('NFC emulação iniciada');
       // Dados do cartão
@@ -102,8 +106,11 @@ function AppContent() {
         Alert.alert('NFC', 'Mensagem NFC escrita!');
       }
       await NfcManager.cancelTechnologyRequest();
-    } catch {
-      Alert.alert('NFC', 'Erro ao emular cartão ou operação cancelada.');
+    } catch (error) {
+      Alert.alert(
+        'NFC',
+        'Erro ao emular cartão ou operação cancelada: ' + error.message,
+      );
       await NfcManager.cancelTechnologyRequest();
     }
   };
@@ -163,6 +170,7 @@ function AppContent() {
         <TouchableOpacity
           style={[styles.nfcButton, styles.nfcButtonFlex]}
           onPress={emulateCard}
+          disabled={!hasNFC || !nfcIsEnabled}
           activeOpacity={0.8}
         >
           <Text style={styles.nfcButtonText}>Ativar NFC</Text>
@@ -170,6 +178,7 @@ function AppContent() {
         <TouchableOpacity
           style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
           onPress={readTag}
+          disabled={!hasNFC || !nfcIsEnabled}
           activeOpacity={0.8}
         >
           <Text style={styles.nfcButtonText}>Ler NFC</Text>
