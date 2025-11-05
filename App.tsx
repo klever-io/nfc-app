@@ -15,8 +15,8 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import NfcManager, { NfcEvents, NfcTech, Ndef } from 'react-native-nfc-manager';
-import CreditIcon from './assets/credit.svg';
-import DebitIcon from './assets/debit.svg';
+// import CreditIcon from './assets/credit.svg';
+// import DebitIcon from './assets/debit.svg';
 // import NFCLogo from './assets/nfc-logo.svg';
 
 const transactions = [
@@ -26,6 +26,17 @@ const transactions = [
   { id: '4', title: 'Pedágio', amount: -18.5, date: '01/11/2025' },
   { id: '5', title: 'Estacionamento', amount: -28.5, date: '01/11/2025' },
 ];
+
+const decodeNdefRecord = record => {
+  if (Ndef.isType(record, Ndef.TNF_WELL_KNOWN, Ndef.RTD_TEXT)) {
+    return ["text", Ndef.text.decodePayload(record.payload)];
+  }
+  if (Ndef.isType(record, Ndef.TNF_WELL_KNOWN, Ndef.RTD_URI)) {
+    return ["uri", Ndef.uri.decodePayload(record.payload)];
+  }
+
+  return ["unknown", "---"];
+};
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -41,37 +52,42 @@ function AppContent() {
   const safeAreaInsets = useSafeAreaInsets();
   const [hasNFC, setHasNFC] = useState(false);
   const [nfcIsEnabled, setNfcIsEnabled] = useState(false);
+  const [isValidate, setIsValidate] = useState(false)
   const [nfcContent, setNfcContent] = useState<string | null>(null);
   const saldo = transactions.reduce((acc, t) => acc + t.amount, 0);
 
   useEffect(() => {
     const checkIsSupported = async () => {
-      const deviceIsSupported = await NfcManager.isSupported();
+      const deviceIsSupported = await NfcManager.isSupported()
 
-      setHasNFC(deviceIsSupported);
-      console.log('NFC supported:', deviceIsSupported);
+      setHasNFC(deviceIsSupported)
       if (deviceIsSupported) {
-        await NfcManager.start();
-        NfcManager.isEnabled()
-          .then(setNfcIsEnabled)
-          .catch(() => setNfcIsEnabled(false));
-
-        NfcManager.setEventListener(NfcEvents.DiscoverTag, (tag: any) => {
-          console.log('tag found', tag);
-          setNfcContent(`${tag}`);
-        });
+        await NfcManager.start()
       }
-    };
+    }
 
-    checkIsSupported();
+    checkIsSupported()
+  }, [])
+
+  useEffect(() => {
+    const event = (tag) => {
+      console.log('tag found ', tag)
+      console.log("record ", decodeNdefRecord(tag))
+    }
+    NfcManager.setEventListener(NfcEvents.DiscoverTag, event)
+    NfcManager.setEventListener(NfcEvents.DiscoverBackgroundTag, event)
+    NfcManager.setEventListener(NfcEvents.StateChanged, event)
+    NfcManager.setEventListener(NfcEvents.SessionClosed, event)
+
     return () => {
-      setNfcIsEnabled(false);
       NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
-    };
-  }, []);
+    }
+  }, [])
 
   const readTag = async () => {
+    console.log("Lendo")
     await NfcManager.registerTagEvent();
+    console.log("Comecando a escutar")
   };
 
   const handleTransactionPress = (item: (typeof transactions)[0]) => {
@@ -82,15 +98,26 @@ function AppContent() {
   };
 
   const emulateCard = async () => {
+    console.log("asdasdadasas")
     if (Platform.OS !== 'android') {
       Alert.alert('NFC', 'Emulação NFC só é suportada no Android.');
       return;
     }
+
+
     try {
+
       console.log('Iniciando emulação NFC...');
       await NfcManager.requestTechnology(NfcTech.Ndef);
+      console.log("Datasdadas ")
+      // const bytes = Ndef.encodeMessage([Ndef.uriRecord('https://blog.logrocket.com/')]);
+
+      // if (bytes) {
+      //   await NfcManager.ndefHandler.writeNdefMessage(bytes);
+      // }
+      // await NfcManager.requestTechnology(NfcTech.Ndef);
       console.log('NFC emulação iniciada');
-      // Dados do cartão
+      // // Dados do cartão
       const cardData = {
         nome: 'MARCEL CLIENTE',
         numero: '1234 5678 9012 3456',
@@ -107,11 +134,12 @@ function AppContent() {
       }
       await NfcManager.cancelTechnologyRequest();
     } catch (error) {
+      console.error(error)
       Alert.alert(
         'NFC',
         'Erro ao emular cartão ou operação cancelada: ' + error.message,
       );
-      await NfcManager.cancelTechnologyRequest();
+      // await NfcManager.cancelTechnologyRequest();
     }
   };
 
@@ -144,11 +172,11 @@ function AppContent() {
             onPress={() => handleTransactionPress(item)}
           >
             <View style={styles.transacaoIconeArea}>
-              {item.amount < 0 ? (
+              {/* {item.amount < 0 ? (
                 <DebitIcon width={24} height={24} />
               ) : (
                 <CreditIcon width={24} height={24} />
-              )}
+              )} */}
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.transacaoTitulo}>{item.title}</Text>
@@ -166,24 +194,25 @@ function AppContent() {
         )}
       />
 
-      <View style={styles.nfcButtonWrapperRow}>
-        <TouchableOpacity
-          style={[styles.nfcButton, styles.nfcButtonFlex]}
-          onPress={emulateCard}
-          disabled={!hasNFC || !nfcIsEnabled}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.nfcButtonText}>Ativar NFC</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
-          onPress={readTag}
-          disabled={!hasNFC || !nfcIsEnabled}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.nfcButtonText}>Ler NFC</Text>
-        </TouchableOpacity>
-      </View>
+      {hasNFC && (
+        <View style={styles.nfcButtonWrapperRow}>
+          <TouchableOpacity
+            style={[styles.nfcButton, styles.nfcButtonFlex]}
+            onPress={emulateCard}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.nfcButtonText}>Ativar NFC</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
+            onPress={readTag}
+            activeOpacity={0.8}
+          >
+            {isValidate
+              ? (<Text style={styles.nfcButtonText}>Lendo</Text>)
+              : (<Text style={styles.nfcButtonText}>Ler NFC</Text>)}
+          </TouchableOpacity>
+        </View>)}
 
       {nfcContent && (
         <View style={styles.nfcContentBox}>

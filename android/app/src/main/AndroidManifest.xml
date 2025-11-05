@@ -1,11 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- PERMISSIONS -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-feature android:name="android.hardware.wifi" android:required="true" />
+	  <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
+	  <uses-feature android:name="android.hardware.nfc" android:required="true" />    
     <uses-permission android:name="android.permission.NFC" />
-    <uses-feature 
-      android:name="android.hardware.nfc" 
-      android:required="false" />
 
     <application
       android:name=".MainApplication"
@@ -14,7 +13,6 @@
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
       android:theme="@style/AppTheme"
-      android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
       <activity
         android:name=".MainActivity"
@@ -27,7 +25,6 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
-
         <!-- Adicione este intent-filter para detectar tags NFC -->
         <intent-filter>
           <action android:name="android.nfc.action.NDEF_DISCOVERED"/>
