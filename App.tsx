@@ -10,8 +10,10 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -419,6 +421,17 @@ function AppContent({
 
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
+      <LinearGradient
+        colors={['#161616', '#000']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          zIndex: -1,
+        }}
+        useAngle={true}
+        angle={120}
+      />
       {!showDetails && !showSuccess && (
         <View style={styles.saldoContainer}>
           <Text style={styles.saldoLabel}>Amount to pay</Text>
@@ -655,6 +668,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#fff',
+    paddingVertical: 18,
   },
   rechargeTitle: {
     fontSize: 16,
@@ -797,7 +811,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   nfcButtonFlex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#0E0E0E', paddingHorizontal: 20 },
+  container: { flex: 1, paddingHorizontal: 20 },
   logoContainer: { alignItems: 'center', marginTop: 24, marginBottom: 16 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#2DE2E6', marginTop: 8 },
   saldoContainer: {
@@ -891,6 +905,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderColor: '#fff',
     borderWidth: 1,
+    paddingVertical: 18,
   },
   transacaoItemSelected: {
     backgroundColor: '#161616',
@@ -921,10 +936,11 @@ const styles = StyleSheet.create({
   loadingBox: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: 40,
     marginVertical: 24,
     backgroundColor: '#161616',
     borderRadius: 16,
+    width: '100%',
   },
   loadingText: {
     fontSize: 18,
