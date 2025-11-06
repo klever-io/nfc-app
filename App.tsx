@@ -21,10 +21,8 @@ import BootSplash from 'react-native-bootsplash';
 
 const transactions = [
   { id: '1', title: 'Parking Lot', amount: 200.0 },
-  { id: '3', title: 'Coffee', amount: 8.5 },
-
-  { id: 'balance', title: 'Ver Saldo', amount: 0 },
-  { id: 'recharge', title: 'Recarga de Cartão', amount: 0 },
+  { id: 'balance', title: 'Balance', amount: 0 },
+  { id: 'recharge', title: 'Recharge', amount: 0 },
 ];
 
 // Remover hooks do escopo global, mover para AppContent
@@ -53,9 +51,11 @@ function App() {
   );
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrCodeValue, setQrCodeValue] = useState('');
+  const [saldo, setSaldo] = useState(
+    transactions.find(t => t.id === '1')?.amount ?? 0,
+  );
   const isDarkMode = useColorScheme() === 'dark';
 
-  // Função para ler saldo do cartão
   const handleCheckBalance = async () => {
     setReadingType('balance');
     setShowReadingModal(true);
@@ -95,7 +95,7 @@ function App() {
         setRechargeLoading(false);
       }, 1500);
     } catch (err) {
-      setQrCodeValue('Erro ao ler cartão');
+      setQrCodeValue('Error while reading card');
       setShowQrModal(true);
       setShowReadingModal(false);
       setRechargeLoading(false);
@@ -126,6 +126,8 @@ function App() {
         setRechargeLoading={setRechargeLoading}
         setShowReadingModal={setShowReadingModal}
         setReadingType={setReadingType}
+        saldo={saldo}
+        setSaldo={setSaldo}
       />
       {/* Modais globais, como leitura de saldo/recarga */}
       {showReadingModal && (
@@ -133,8 +135,8 @@ function App() {
           <View style={styles.qrBox}>
             <Text style={styles.qrTitle}>
               {readingType === 'recharge'
-                ? 'Aproxime o cartão para recarga'
-                : 'Aproxime o cartão para consultar saldo'}
+                ? 'Tap card to top up'
+                : 'Tap card to check balance'}
             </Text>
             <Text
               style={{
@@ -144,7 +146,7 @@ function App() {
                 textAlign: 'center',
               }}
             >
-              O cartão está sendo lido...
+              Reading card...
             </Text>
             <View style={{ alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontSize: 40 }}>📲</Text>
@@ -156,19 +158,19 @@ function App() {
       {showBalanceModal && (
         <View style={styles.qrModalCentered}>
           <View style={styles.qrBox}>
-            <Text style={styles.qrTitle}>Informações do Cartão</Text>
+            <Text style={styles.qrTitle}>Card Details</Text>
             {balanceInfo ? (
               <>
                 <Text
                   style={{ fontSize: 18, color: '#181A20', marginBottom: 8 }}
                 >
-                  <Text style={{ fontWeight: 'bold' }}>ID do Usuário: </Text>
+                  <Text style={{ fontWeight: 'bold' }}>User ID: </Text>
                   {balanceInfo.cardId}
                 </Text>
                 <Text
                   style={{ fontSize: 18, color: '#181A20', marginBottom: 18 }}
                 >
-                  <Text style={{ fontWeight: 'bold' }}>Saldo: </Text>
+                  <Text style={{ fontWeight: 'bold' }}>Balance: </Text>
                   R$ {balanceInfo.saldo.toFixed(2)}
                 </Text>
               </>
@@ -176,7 +178,7 @@ function App() {
               <Text
                 style={{ fontSize: 16, color: '#FF3B30', marginBottom: 18 }}
               >
-                Erro ao ler cartão
+                Error while reading card
               </Text>
             )}
             <TouchableOpacity
@@ -192,9 +194,7 @@ function App() {
       {showQrModal && (
         <View style={styles.qrModalCentered}>
           <View style={styles.qrBox}>
-            <Text style={styles.qrTitle}>
-              Escaneie o QRCode para recarregar
-            </Text>
+            <Text style={styles.qrTitle}>Scan the QR code to top up</Text>
             <View style={styles.qrFakeCode}>
               <QRCode
                 value={qrCodeValue || ' '}
@@ -207,7 +207,7 @@ function App() {
               style={styles.qrButton}
               onPress={() => setShowQrModal(false)}
             >
-              <Text style={styles.qrButtonText}>Fechar</Text>
+              <Text style={styles.qrButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -233,6 +233,8 @@ export type AppContentProps = {
   setReadingType: React.Dispatch<
     React.SetStateAction<'recharge' | 'balance' | null>
   >;
+  saldo: number;
+  setSaldo: React.Dispatch<React.SetStateAction<number>>;
 };
 
 function AppContent({
@@ -248,18 +250,18 @@ function AppContent({
   setRechargeLoading,
   setShowReadingModal,
   setReadingType,
+  saldo,
+  setSaldo,
 }: AppContentProps) {
   const safeAreaInsets = useSafeAreaInsets();
   const [hasNFC, setHasNFC] = useState(false);
   const [nfcIsEnabled, setNfcIsEnabled] = useState(false);
-  const [isValidate, setIsValidate] = useState(false);
   const [nfcContent, setNfcContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureMessage, setFailureMessage] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null); // novo estado
-  const [saldo, setSaldo] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [showParkingReadingModal, setShowParkingReadingModal] = useState(false);
@@ -417,19 +419,13 @@ function AppContent({
 
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
-      {/* <View style={styles.logoContainer}>
-        <NFCLogo width={80} height={80} />
-      </View> */}
-      {/* Remover saldo da tela de detalhes e confirmação */}
       {!showDetails && !showSuccess && (
         <View style={styles.saldoContainer}>
           <Text style={styles.saldoLabel}>Amount to pay</Text>
           <Text style={styles.saldoValor}>R$ {saldo.toFixed(2)}</Text>
         </View>
       )}
-      {/* {!loading && (
-        <Text style={styles.transacoesTitulo}>Transações recentes</Text>
-      )} */}
+
       {showDetails ? (
         <TransactionDetails
           transaction={transactions.find(t => t.id === selectedId)}
@@ -440,10 +436,7 @@ function AppContent({
         <SuccessScreen />
       ) : loading ? (
         <View style={styles.loadingBox}>
-          <Text style={styles.loadingText}>
-            Pagamento está sendo efetuado...
-          </Text>
-          {/* Animação simples usando três pontos piscando */}
+          <Text style={styles.loadingText}>Payment is being processed...</Text>
           <LoadingDots />
         </View>
       ) : (
@@ -495,7 +488,7 @@ function AppContent({
                     styles.transacaoValor,
                     item.id === selectedId
                       ? { color: '#fff' }
-                      : { color: item.amount < 0 ? '#FF3B30' : '#34C759' },
+                      : { color: item.amount < 0 ? '#fff' : '#fff' },
                   ]}
                 >
                   R$ {item.amount.toFixed(2)}
@@ -505,13 +498,10 @@ function AppContent({
           }}
         />
       )}
-      {/* Modal de leitura para Parking Lot */}
       {showParkingReadingModal && (
         <View style={styles.qrModalCentered}>
           <View style={styles.qrBox}>
-            <Text style={styles.qrTitle}>
-              Aproxime o cartão para pagamento de estacionamento
-            </Text>
+            <Text style={styles.qrTitle}>Tap card for parking payment</Text>
             <Text
               style={{
                 fontSize: 16,
@@ -520,7 +510,7 @@ function AppContent({
                 textAlign: 'center',
               }}
             >
-              O cartão está sendo lido...
+              The card is being read...
             </Text>
             <View style={{ alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontSize: 40 }}>🅿️📲</Text>
@@ -528,36 +518,10 @@ function AppContent({
           </View>
         </View>
       )}
-      {/* Modal de leitura para Coffee */}
-      {showCoffeeReadingModal && (
-        <View style={styles.qrModalCentered}>
-          <View style={styles.qrBox}>
-            <Text style={styles.qrTitle}>
-              Aproxime o cartão para pagar o café
-            </Text>
-            <Text
-              style={{
-                fontSize: 16,
-                color: '#181A20',
-                marginBottom: 18,
-                textAlign: 'center',
-              }}
-            >
-              O cartão está sendo lido...
-            </Text>
-            <View style={{ alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ fontSize: 40 }}>☕📲</Text>
-            </View>
-          </View>
-        </View>
-      )}
-      {/* Modal QRCode sempre fora do fluxo da lista para garantir sobreposição */}
       {showQrModal && (
         <View style={styles.qrModalCentered}>
           <View style={styles.qrBox}>
-            <Text style={styles.qrTitle}>
-              Escaneie o QRCode para recarregar
-            </Text>
+            <Text style={styles.qrTitle}>Scan the QR code to top up</Text>
             <View style={styles.qrFakeCode}>
               <QRCode
                 value={qrCodeValue || ' '}
@@ -575,7 +539,6 @@ function AppContent({
           </View>
         </View>
       )}
-      {/* Modal de falha */}
       {showFailureModal && (
         <View style={styles.failureModalCentered}>
           <View style={styles.failureBox}>
@@ -603,7 +566,6 @@ function AppContent({
   );
 }
 
-// Componente animado simples
 function LoadingDots() {
   const [dotCount, setDotCount] = useState(1);
   useEffect(() => {
@@ -615,7 +577,6 @@ function LoadingDots() {
   return <Text style={styles.loadingText}>{'.'.repeat(dotCount)}</Text>;
 }
 
-// Componente de tela de sucesso animada
 function SuccessScreen() {
   const [scale, setScale] = useState(1);
   useEffect(() => {
@@ -628,13 +589,12 @@ function SuccessScreen() {
     <View style={styles.successModalCentered}>
       <View style={styles.successBox}>
         <View style={[styles.successCircle, { transform: [{ scale }] }]} />
-        <Text style={styles.successText}>Pagamento efetuado com sucesso!</Text>
+        <Text style={styles.successText}>Payment completed successfully!</Text>
       </View>
     </View>
   );
 }
 
-// Componente de detalhes da transação
 function TransactionDetails({
   transaction,
   hash,
@@ -656,17 +616,17 @@ function TransactionDetails({
       }}
     >
       <Text style={[styles.detailsSuccessTitle, { marginTop: 24 }]}>
-        Transação efetuada com sucesso!
+        Transaction complete!
       </Text>
       <View style={[styles.detailsBox, { marginTop: 24 }]}>
-        <Text style={styles.detailsTitle}>Detalhes da Transação</Text>
+        <Text style={styles.detailsTitle}>Trasaction Details</Text>
         <Text style={styles.detailsLabel}>Item:</Text>
         <Text style={styles.detailsValue}>{transaction.title}</Text>
-        <Text style={styles.detailsLabel}>Valor:</Text>
+        <Text style={styles.detailsLabel}>Amount:</Text>
         <Text style={styles.detailsValue}>
           R$ {transaction.amount.toFixed(2)}
         </Text>
-        <Text style={styles.detailsLabel}>Data:</Text>
+        <Text style={styles.detailsLabel}>Date:</Text>
         <Text style={styles.detailsValue}>{date}</Text>
         <Text style={styles.detailsLabel}>Hash:</Text>
         <Text style={styles.detailsValue}>{hash}</Text>
@@ -678,7 +638,7 @@ function TransactionDetails({
         ]}
       >
         <TouchableOpacity style={styles.detailsButton} onPress={onBack}>
-          <Text style={styles.detailsButtonText}>Voltar</Text>
+          <Text style={styles.detailsButtonText}>Home</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -935,9 +895,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   transacaoItemSelected: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#23263A',
     borderWidth: 2,
-    borderColor: '#2DE2E6',
+    borderColor: '#fff',
   },
   transacaoIconeArea: {
     width: 32,
