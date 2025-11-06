@@ -183,8 +183,8 @@ function AppContent() {
       {/* <View style={styles.logoContainer}>
         <NFCLogo width={80} height={80} />
       </View> */}
-      {/* Remover saldo da tela de detalhes */}
-      {!showDetails && (
+      {/* Remover saldo da tela de detalhes e confirmação */}
+      {!showDetails && !showSuccess && (
         <View style={styles.saldoContainer}>
           <Text style={styles.saldoLabel}>Amount to pay</Text>
           <Text style={styles.saldoValor}>R$ {saldo.toFixed(2)}</Text>
@@ -240,8 +240,8 @@ function AppContent() {
           )}
         />
       )}
-      {/* NFC Button fixo no fim da tela */}
-      {!showDetails && (
+      {/* NFC Button fixo no fim da tela - removido na tela de sucesso */}
+      {!showDetails && !showSuccess && (
         <View
           style={[
             styles.nfcButtonWrapperRow,
@@ -254,9 +254,15 @@ function AppContent() {
           ]}
         >
           <TouchableOpacity
-            style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
+            style={[
+              styles.nfcButton,
+              styles.nfcButtonFlex,
+              { marginLeft: 12 },
+              loading && { opacity: 0.5 },
+            ]}
             onPress={fakeReadTag}
             activeOpacity={0.8}
+            disabled={loading}
           >
             {isValidate ? (
               <Text style={styles.nfcButtonText}>Reading Card</Text>
@@ -298,9 +304,11 @@ function SuccessScreen() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <View style={styles.successBox}>
-      <View style={[styles.successCircle, { transform: [{ scale }] }]} />
-      <Text style={styles.successText}>Pagamento efetuado com sucesso!</Text>
+    <View style={styles.successModalCentered}>
+      <View style={styles.successBox}>
+        <View style={[styles.successCircle, { transform: [{ scale }] }]} />
+        <Text style={styles.successText}>Pagamento efetuado com sucesso!</Text>
+      </View>
     </View>
   );
 }
@@ -357,6 +365,18 @@ function TransactionDetails({
 }
 
 const styles = StyleSheet.create({
+  successModalCentered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+    backgroundColor: 'rgba(24,26,32,0.85)',
+  },
   cardBox: {
     backgroundColor: '#23263A',
     borderRadius: 16,
