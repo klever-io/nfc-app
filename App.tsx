@@ -21,9 +21,9 @@ import BootSplash from 'react-native-bootsplash';
 
 const transactions = [
   { id: '1', title: 'Parking Lot', amount: 200.0 },
-  { id: '2', title: 'Gas', amount: 50.25 },
   { id: '3', title: 'Coffee', amount: 8.5 },
-  { id: '4', title: 'Toll', amount: 18.5 },
+
+  { id: 'balance', title: 'Ver Saldo', amount: 0 },
   { id: 'recharge', title: 'Recarga de Cartão', amount: 0 },
 ];
 
@@ -41,22 +41,63 @@ const decodeNdefRecord = (record: any) => {
 };
 
 function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [balanceInfo, setBalanceInfo] = useState<{
+    cardId: string;
+    saldo: number;
+  } | null>(null);
+  const [rechargeLoading, setRechargeLoading] = useState(false);
+  const [showReadingModal, setShowReadingModal] = useState(false);
+  const [readingType, setReadingType] = useState<'recharge' | 'balance' | null>(
+    null,
+  );
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrCodeValue, setQrCodeValue] = useState('');
-  const [rechargeLoading, setRechargeLoading] = useState(false);
-  // Simula leitura do cartão para recarga
-  const handleRecharge = async () => {
+  const isDarkMode = useColorScheme() === 'dark';
+
+  // Função para ler saldo do cartão
+  const handleCheckBalance = async () => {
+    setReadingType('balance');
+    setShowReadingModal(true);
     setRechargeLoading(true);
     try {
       const { readCardForRecharge } = await import('./service/nfcService');
-      const result = await readCardForRecharge();
-      setQrCodeValue(`https://recarga.exemplo.com/card?id=${result.cardId}`);
-      setShowQrModal(true);
+      setTimeout(async () => {
+        // Simula saldo aleatório
+        const result = await readCardForRecharge();
+        setBalanceInfo({
+          cardId: result.cardId,
+          saldo: Math.floor(Math.random() * 1000) / 10,
+        });
+        setShowBalanceModal(true);
+        setShowReadingModal(false);
+        setRechargeLoading(false);
+      }, 1500);
+    } catch (err) {
+      setBalanceInfo(null);
+      setShowBalanceModal(true);
+      setShowReadingModal(false);
+      setRechargeLoading(false);
+    }
+  };
+  // Simula leitura do cartão para recarga
+  const handleRecharge = async () => {
+    setReadingType('recharge');
+    setShowReadingModal(true);
+    setRechargeLoading(true);
+    try {
+      const { readCardForRecharge } = await import('./service/nfcService');
+      setTimeout(async () => {
+        const result = await readCardForRecharge();
+        setQrCodeValue(`https://recarga.exemplo.com/card?id=${result.cardId}`);
+        setShowQrModal(true);
+        setShowReadingModal(false);
+        setRechargeLoading(false);
+      }, 1500);
     } catch (err) {
       setQrCodeValue('Erro ao ler cartão');
       setShowQrModal(true);
-    } finally {
+      setShowReadingModal(false);
       setRechargeLoading(false);
     }
   };
@@ -78,7 +119,99 @@ function App() {
         qrCodeValue={qrCodeValue}
         setShowQrModal={setShowQrModal}
         rechargeLoading={rechargeLoading}
+        showBalanceModal={showBalanceModal}
+        setShowBalanceModal={setShowBalanceModal}
+        balanceInfo={balanceInfo}
+        setBalanceInfo={setBalanceInfo}
+        setRechargeLoading={setRechargeLoading}
+        setShowReadingModal={setShowReadingModal}
+        setReadingType={setReadingType}
       />
+      {/* Modais globais, como leitura de saldo/recarga */}
+      {showReadingModal && (
+        <View style={styles.qrModalCentered}>
+          <View style={styles.qrBox}>
+            <Text style={styles.qrTitle}>
+              {readingType === 'recharge'
+                ? 'Aproxime o cartão para recarga'
+                : 'Aproxime o cartão para consultar saldo'}
+            </Text>
+            <Text
+              style={{
+                fontSize: 16,
+                color: '#181A20',
+                marginBottom: 18,
+                textAlign: 'center',
+              }}
+            >
+              O cartão está sendo lido...
+            </Text>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 40 }}>📲</Text>
+            </View>
+          </View>
+        </View>
+      )}
+      {/* Modal de saldo */}
+      {showBalanceModal && (
+        <View style={styles.qrModalCentered}>
+          <View style={styles.qrBox}>
+            <Text style={styles.qrTitle}>Informações do Cartão</Text>
+            {balanceInfo ? (
+              <>
+                <Text
+                  style={{ fontSize: 18, color: '#181A20', marginBottom: 8 }}
+                >
+                  <Text style={{ fontWeight: 'bold' }}>ID do Usuário: </Text>
+                  {balanceInfo.cardId}
+                </Text>
+                <Text
+                  style={{ fontSize: 18, color: '#181A20', marginBottom: 18 }}
+                >
+                  <Text style={{ fontWeight: 'bold' }}>Saldo: </Text>
+                  R$ {balanceInfo.saldo.toFixed(2)}
+                </Text>
+              </>
+            ) : (
+              <Text
+                style={{ fontSize: 16, color: '#FF3B30', marginBottom: 18 }}
+              >
+                Erro ao ler cartão
+              </Text>
+            )}
+            <TouchableOpacity
+              style={styles.qrButton}
+              onPress={() => setShowBalanceModal(false)}
+            >
+              <Text style={styles.qrButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      {/* Modal QRCode sempre fora do fluxo da lista para garantir sobreposição */}
+      {showQrModal && (
+        <View style={styles.qrModalCentered}>
+          <View style={styles.qrBox}>
+            <Text style={styles.qrTitle}>
+              Escaneie o QRCode para recarregar
+            </Text>
+            <View style={styles.qrFakeCode}>
+              <QRCode
+                value={qrCodeValue || ' '}
+                size={180}
+                backgroundColor="#2DE2E6"
+                color="#181A20"
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.qrButton}
+              onPress={() => setShowQrModal(false)}
+            >
+              <Text style={styles.qrButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaProvider>
   );
 }
@@ -89,6 +222,17 @@ export type AppContentProps = {
   qrCodeValue: string;
   setShowQrModal: React.Dispatch<React.SetStateAction<boolean>>;
   rechargeLoading: boolean;
+  showBalanceModal: boolean;
+  setShowBalanceModal: React.Dispatch<React.SetStateAction<boolean>>;
+  balanceInfo: { cardId: string; saldo: number } | null;
+  setBalanceInfo: React.Dispatch<
+    React.SetStateAction<{ cardId: string; saldo: number } | null>
+  >;
+  setRechargeLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowReadingModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setReadingType: React.Dispatch<
+    React.SetStateAction<'recharge' | 'balance' | null>
+  >;
 };
 
 function AppContent({
@@ -97,6 +241,13 @@ function AppContent({
   qrCodeValue,
   setShowQrModal,
   rechargeLoading,
+  showBalanceModal,
+  setShowBalanceModal,
+  balanceInfo,
+  setBalanceInfo,
+  setRechargeLoading,
+  setShowReadingModal,
+  setReadingType,
 }: AppContentProps) {
   const safeAreaInsets = useSafeAreaInsets();
   const [hasNFC, setHasNFC] = useState(false);
@@ -111,6 +262,8 @@ function AppContent({
   const [saldo, setSaldo] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const [showParkingReadingModal, setShowParkingReadingModal] = useState(false);
+  const [showCoffeeReadingModal, setShowCoffeeReadingModal] = useState(false);
 
   useEffect(() => {
     const checkIsSupported = async () => {
@@ -172,10 +325,24 @@ function AppContent({
     }
   };
 
-  const handleTransactionPress = (item: (typeof transactions)[0]) => {
+  const handleTransactionPress = async (item: (typeof transactions)[0]) => {
     setSelectedId(item.id);
     setSaldo(item.amount);
-    // Alert removido
+    if (item.id === '1') {
+      setShowParkingReadingModal(true);
+      setTimeout(async () => {
+        setShowParkingReadingModal(false);
+        await fakeReadTag();
+      }, 1500);
+    } else if (item.id === '3') {
+      setShowCoffeeReadingModal(true);
+      setTimeout(async () => {
+        setShowCoffeeReadingModal(false);
+        await fakeReadTag();
+      }, 1500);
+    } else {
+      // fluxo normal para outros itens
+    }
   };
 
   const emulateCard = async () => {
@@ -223,6 +390,31 @@ function AppContent({
     }
   };
 
+  const handleCheckBalanceLocal = async () => {
+    setReadingType('balance');
+    setShowReadingModal(true);
+    setRechargeLoading(true);
+    try {
+      const { readCardForRecharge } = await import('./service/nfcService');
+      setTimeout(async () => {
+        // Simula saldo aleatório
+        const result = await readCardForRecharge();
+        setBalanceInfo({
+          cardId: result.cardId,
+          saldo: Math.floor(Math.random() * 1000) / 10,
+        });
+        setShowBalanceModal(true);
+        setShowReadingModal(false);
+        setRechargeLoading(false);
+      }, 1500);
+    } catch (err) {
+      setBalanceInfo(null);
+      setShowBalanceModal(true);
+      setShowReadingModal(false);
+      setRechargeLoading(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
       {/* <View style={styles.logoContainer}>
@@ -260,23 +452,34 @@ function AppContent({
           keyExtractor={item => item.id}
           style={styles.lista}
           contentContainerStyle={{ paddingBottom: 32 }}
-          renderItem={({ item }) =>
-            item.id === 'recharge' ? (
-              <TouchableOpacity
-                style={styles.rechargeItem}
-                onPress={handleRecharge}
-                disabled={rechargeLoading}
-              >
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.rechargeTitle}>{item.title}</Text>
-                </View>
-                {rechargeLoading ? (
-                  <Text style={styles.rechargeIcon}>⏳</Text>
-                ) : (
-                  <Text style={styles.rechargeIcon}>🔄</Text>
-                )}
-              </TouchableOpacity>
-            ) : (
+          renderItem={({ item }) => {
+            if (item.id === 'recharge') {
+              return (
+                <TouchableOpacity
+                  style={styles.rechargeItem}
+                  onPress={handleRecharge}
+                  disabled={rechargeLoading}
+                >
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.rechargeTitle}>{item.title}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+            if (item.id === 'balance') {
+              return (
+                <TouchableOpacity
+                  style={styles.rechargeItem}
+                  onPress={handleCheckBalanceLocal}
+                  disabled={rechargeLoading}
+                >
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.rechargeTitle}>{item.title}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+            return (
               <TouchableOpacity
                 style={[
                   styles.transacaoItem,
@@ -298,40 +501,54 @@ function AppContent({
                   R$ {item.amount.toFixed(2)}
                 </Text>
               </TouchableOpacity>
-            )
-          }
+            );
+          }}
         />
       )}
-      {/* NFC Button fixo no fim da tela - removido na tela de sucesso */}
-      {!showDetails && !showSuccess && (
-        <View
-          style={[
-            styles.nfcButtonWrapperRow,
-            {
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: safeAreaInsets.bottom + 16,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.nfcButton,
-              styles.nfcButtonFlex,
-              { marginLeft: 12 },
-              loading && { opacity: 0.5 },
-            ]}
-            onPress={fakeReadTag}
-            activeOpacity={0.8}
-            disabled={loading}
-          >
-            {isValidate ? (
-              <Text style={styles.nfcButtonText}>Reading Card</Text>
-            ) : (
-              <Text style={styles.nfcButtonText}>Start Checkout</Text>
-            )}
-          </TouchableOpacity>
+      {/* Modal de leitura para Parking Lot */}
+      {showParkingReadingModal && (
+        <View style={styles.qrModalCentered}>
+          <View style={styles.qrBox}>
+            <Text style={styles.qrTitle}>
+              Aproxime o cartão para pagamento de estacionamento
+            </Text>
+            <Text
+              style={{
+                fontSize: 16,
+                color: '#181A20',
+                marginBottom: 18,
+                textAlign: 'center',
+              }}
+            >
+              O cartão está sendo lido...
+            </Text>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 40 }}>🅿️📲</Text>
+            </View>
+          </View>
+        </View>
+      )}
+      {/* Modal de leitura para Coffee */}
+      {showCoffeeReadingModal && (
+        <View style={styles.qrModalCentered}>
+          <View style={styles.qrBox}>
+            <Text style={styles.qrTitle}>
+              Aproxime o cartão para pagar o café
+            </Text>
+            <Text
+              style={{
+                fontSize: 16,
+                color: '#181A20',
+                marginBottom: 18,
+                textAlign: 'center',
+              }}
+            >
+              O cartão está sendo lido...
+            </Text>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 40 }}>☕📲</Text>
+            </View>
+          </View>
         </View>
       )}
       {/* Modal QRCode sempre fora do fluxo da lista para garantir sobreposição */}
@@ -342,7 +559,12 @@ function AppContent({
               Escaneie o QRCode para recarregar
             </Text>
             <View style={styles.qrFakeCode}>
-              <QRCode value={qrCodeValue || ' '} size={180} backgroundColor="#2DE2E6" color="#181A20" />
+              <QRCode
+                value={qrCodeValue || ' '}
+                size={180}
+                backgroundColor="#2DE2E6"
+                color="#181A20"
+              />
             </View>
             <TouchableOpacity
               style={styles.qrButton}
