@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ImageBackground } from 'react-native';
 import {
   StatusBar,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -20,24 +22,67 @@ import DebitIcon from './assets/debit.svg';
 // import NFCLogo from './assets/nfc-logo.svg';
 
 const transactions = [
-  { id: '1', title: 'Depósito', amount: 200.0, date: '02/11/2025' },
-  { id: '2', title: 'Compra Supermercado', amount: -50.25, date: '03/11/2025' },
-  { id: '3', title: 'Café', amount: -8.5, date: '01/11/2025' },
-  { id: '4', title: 'Pedágio', amount: -18.5, date: '01/11/2025' },
-  { id: '5', title: 'Estacionamento', amount: -28.5, date: '01/11/2025' },
+  { id: '1', title: 'Recharge', amount: 200.0, date: '02/11/2025' },
+  { id: '2', title: 'Supermarket Purchase', amount: -50.25, date: '03/11/2025' },
+  { id: '3', title: 'Coffee', amount: -8.5, date: '01/11/2025' },
+  { id: '4', title: 'Toll', amount: -18.5, date: '01/11/2025' },
+  { id: '5', title: 'Parking', amount: -28.5, date: '01/11/2025' },
 ];
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const [screen, setScreen] = useState<'home' | 'login' | 'register'>('home');
+  const [registerValue, setRegisterValue] = useState('');
+
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      {screen === 'home' && (
+        <ImageBackground source={require('./assets/splash-nfc.png')}
+            imageStyle={{  }} style={styles.backgroundImageFull} resizeMode='cover'>
+
+          <View style={[styles.container, { justifyContent: 'flex-end', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)', paddingBottom: 80 }]}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '500' }}>Welcome to </Text>
+            <Text style={{ color: '#fff', fontSize: 32, marginBottom: 40, fontFamily: 'Manrope-Light', fontWeight: '100' }}>Klever NFC</Text>
+            <TouchableOpacity style={styles.authButton} onPress={() => setScreen('login')}>
+              <Text style={styles.authButtonText}>Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.authButton, { backgroundColor: 'none', borderColor: '#fff', borderWidth: 1, marginTop: 10 }]} onPress={() => setScreen('register')}>
+              <Text style={[styles.authButtonText, { color: '#fff' }]}>Add your card</Text>
+            </TouchableOpacity>
+          </View>
+        </ImageBackground>
+      )}
+      {screen === 'login' && <AppContent onBack={() => setScreen('home')} />}
+      {screen === 'register' && (
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
+          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 32 }}>Add your NFC Virtual Card</Text>
+          <View style={{ width: '100%', marginBottom: 24, backgroundColor: '#222', padding: 16, borderRadius: 24, paddingVertical: 24 }}>
+            <Text style={{ color: '#fff', fontSize: 16, marginBottom: 8, fontWeight: 'bold' }}>ID</Text>
+            <View style={{ borderRadius: 32, marginBottom:10, borderColor: '#4D4D4D', borderWidth: 1 }}>
+              <TextInput
+                style={{ color: '#fff', fontSize: 16, backgroundColor: '#111', paddingHorizontal: 12, borderRadius: 32, paddingVertical: 18 }}
+                placeholder="My card ID"
+                placeholderTextColor="#fff"
+                value={registerValue}
+                onChangeText={setRegisterValue}
+              />
+            </View>
+          <TouchableOpacity style={styles.authButton} onPress={() => Alert.alert('Cadastro', `Nome cadastrado: ${registerValue}`)}>
+            <Text style={styles.authButtonText}>Scan my card</Text>
+          </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={{ marginTop: 24 }} onPress={() => setScreen('home')}>
+            <Text style={{ color: '#fff', fontSize: 16 }}>Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaProvider>
   );
 }
 
-function AppContent() {
+// Recebe onBack opcional para mostrar botão de voltar
+function AppContent({ onBack }: { onBack?: () => void }) {
   const safeAreaInsets = useSafeAreaInsets();
   const [hasNFC, setHasNFC] = useState(false);
   const [nfcIsEnabled, setNfcIsEnabled] = useState(false);
@@ -81,58 +126,26 @@ function AppContent() {
     );
   };
 
-  const emulateCard = async () => {
-    if (Platform.OS !== 'android') {
-      Alert.alert('NFC', 'Emulação NFC só é suportada no Android.');
-      return;
-    }
-    try {
-      console.log('Iniciando emulação NFC...');
-      await NfcManager.requestTechnology(NfcTech.Ndef);
-      console.log('NFC emulação iniciada');
-      // Dados do cartão
-      const cardData = {
-        nome: 'MARCEL CLIENTE',
-        numero: '1234 5678 9012 3456',
-        validade: '12/30',
-        saldo: saldo.toFixed(2),
-      };
-      const bytes = Ndef.encodeMessage([
-        Ndef.textRecord(JSON.stringify(cardData)),
-      ]);
-      console.log('Card data bytes:', bytes);
-      if (bytes) {
-        await NfcManager.ndefHandler.writeNdefMessage(bytes);
-        Alert.alert('NFC', 'Mensagem NFC escrita!');
-      }
-      await NfcManager.cancelTechnologyRequest();
-    } catch (error) {
-      Alert.alert(
-        'NFC',
-        'Erro ao emular cartão ou operação cancelada: ' + error.message,
-      );
-      await NfcManager.cancelTechnologyRequest();
-    }
-  };
 
   return (
-    <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
-      {/* <View style={styles.logoContainer}>
-        <NFCLogo width={80} height={80} />
-      </View> */}
+    <View style={[styles.container, { paddingTop: safeAreaInsets.top + 20}]}>
       <View style={styles.saldoContainer}>
-        <Text style={styles.saldoLabel}>Saldo disponível</Text>
+        <Text style={styles.saldoLabel}>Available</Text>
       </View>
       <Text style={styles.saldoValor}>R$ {saldo.toFixed(2)}</Text>
       {Platform.OS === 'ios' && (
-        <View style={styles.cardBox}>
-          <Text style={styles.cardTitle}>Cartão NFC Virtual</Text>
-          <Text style={styles.cardInfo}>Número: 1234 5678 9012 3456</Text>
-          <Text style={styles.cardInfo}>Nome: MARCEL CLIENTE</Text>
-          <Text style={styles.cardInfo}>Validade: 12/30</Text>
-        </View>
+        <ImageBackground
+          source={require('./assets/bg-card.png')}
+          style={styles.cardBox}
+          imageStyle={{ borderRadius: 16 }}
+        >
+          <Text style={styles.cardTitle}>NFC Virtual Card</Text>
+          <Text style={styles.cardInfo}>ID: 1234 5678 9012 3456</Text>
+          <Text style={styles.cardInfo}>Issuer: Klever NFC</Text>
+          <Text style={styles.cardInfo}>Type: debit</Text>
+        </ImageBackground>
       )}
-      <Text style={styles.transacoesTitulo}>Transações recentes</Text>
+      <Text style={styles.transacoesTitulo}>Recent Transactions</Text>
       <FlatList
         data={transactions}
         keyExtractor={item => item.id}
@@ -145,9 +158,9 @@ function AppContent() {
           >
             <View style={styles.transacaoIconeArea}>
               {item.amount < 0 ? (
-                <DebitIcon width={24} height={24} />
+                <DebitIcon fill="#F84960" width={24} height={24} />
               ) : (
-                <CreditIcon width={24} height={24} />
+                <CreditIcon fill="#4EBC87" width={24} height={24} />
               )}
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
@@ -157,7 +170,7 @@ function AppContent() {
             <Text
               style={[
                 styles.transacaoValor,
-                { color: item.amount < 0 ? '#FF3B30' : '#34C759' },
+                { color: item.amount < 0 ? '#F84960' : '#4EBC87' },
               ]}
             >
               R$ {item.amount.toFixed(2)}
@@ -169,20 +182,13 @@ function AppContent() {
       <View style={styles.nfcButtonWrapperRow}>
         <TouchableOpacity
           style={[styles.nfcButton, styles.nfcButtonFlex]}
-          onPress={emulateCard}
+          onPress={()=> {}}
           disabled={!hasNFC || !nfcIsEnabled}
           activeOpacity={0.8}
         >
-          <Text style={styles.nfcButtonText}>Ativar NFC</Text>
+          <Text style={styles.nfcButtonText}>Recharge Card</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
-          onPress={readTag}
-          disabled={!hasNFC || !nfcIsEnabled}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.nfcButtonText}>Ler NFC</Text>
-        </TouchableOpacity>
+
       </View>
 
       {nfcContent && (
@@ -196,61 +202,57 @@ function AppContent() {
 }
 
 const styles = StyleSheet.create({
+  backgroundImageFull: {
+    flex: 1, // Makes the ImageBackground fill the entire screen
+  },
   cardBox: {
-    backgroundColor: '#23263A',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   cardTitle: {
-    color: '#2DE2E6',
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
+    fontFamily: 'Manrope-VariableFont_wght',
   },
   cardInfo: {
-    color: '#fff',
+    color: '#939393',
     fontSize: 12,
     marginBottom: 4,
     letterSpacing: 1.1,
+    fontFamily: 'Manrope-VariableFont_wght',
   },
   nfcButtonFlex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#181A20', paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: '#000', paddingHorizontal: 16 , paddingBottom: 30},
   logoContainer: { alignItems: 'center', marginTop: 24, marginBottom: 16 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#2DE2E6', marginTop: 8 },
   saldoContainer: {
     alignItems: 'center',
     marginBottom: 0,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 2,
     paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
   },
-  saldoLabel: { fontSize: 16, color: '#A1A7BB' },
+  saldoLabel: { fontSize: 16, color: '#BABABA', fontFamily: 'Manrope-VariableFont_wght', fontWeight: 'bold' },
   saldoValor: {
-    fontSize: 54,
+    fontSize: 42,
     fontWeight: 'bold',
-    color: '#2DE2E6',
+    color: '#fff',
     marginTop: 0,
-    letterSpacing: 1.2,
     textAlign: 'center',
     marginBottom: 18,
+    fontFamily: 'Manrope-VariableFont_wght',
   },
   transacoesTitulo: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
     color: '#fff',
+    fontFamily: 'Manrope-VariableFont_wght',
   },
   lista: { flex: 1 },
   nfcButtonWrapperRow: {
@@ -268,44 +270,35 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: 'center',
   },
-  nfcContentLabel: { color: '#A1A7BB', fontSize: 14, marginBottom: 4 },
+  nfcContentLabel: { color: '#A1A7BB', fontSize: 14, marginBottom: 4, fontFamily: 'Manrope-VariableFont_wght' },
   nfcContentText: {
-    color: '#2DE2E6',
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+    fontFamily: 'Manrope-VariableFont_wght',
   },
   nfcButton: {
-    backgroundColor: '#2DE2E6',
+    backgroundColor: '#fff',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 32,
-    shadowColor: '#2DE2E6',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   nfcButtonText: {
-    color: '#181A20',
+    color: '#000',
     fontSize: 16,
-    fontWeight: 'bold',
     letterSpacing: 0.5,
     textAlign: 'center',
     marginBottom: 2,
+    fontFamily: 'Manrope-VariableFont_wght',
   },
   transacaoItem: {
-    backgroundColor: '#23263A',
+    backgroundColor: '#161616',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
   },
   transacaoIconeArea: {
     width: 32,
@@ -313,9 +306,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  transacaoTitulo: { fontSize: 16, fontWeight: '500', color: '#fff' },
-  transacaoData: { fontSize: 13, color: '#A1A7BB', marginTop: 2 },
-  transacaoValor: { fontSize: 16, fontWeight: 'bold', color: '#2DE2E6' },
+  transacaoTitulo: { fontSize: 16, fontWeight: '500', color: '#fff', fontFamily: 'Manrope-VariableFont_wght' },
+  transacaoData: { fontSize: 13, color: '#A1A7BB', marginTop: 2, fontFamily: 'Manrope-VariableFont_wght' },
+  transacaoValor: { fontSize: 16, fontWeight: 'bold', color: '#2DE2E6', fontFamily: 'Manrope-VariableFont_wght' },
+  authButton: {
+    backgroundColor: '#fff',
+    borderRadius: 32,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    alignSelf: 'center',
+    marginBottom: 0,
+    elevation: 2,
+    width: '100%',
+  },
+  authButtonText: { color: '#181A20', fontSize: 16, letterSpacing: 0.5, textAlign: 'center', fontFamily: 'Manrope-VariableFont_wght' },
 });
 
 export default App;
