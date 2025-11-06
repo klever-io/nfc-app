@@ -15,6 +15,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import NfcManager, { NfcEvents, NfcTech, Ndef } from 'react-native-nfc-manager';
+import BootSplash from "react-native-bootsplash";
 // import CreditIcon from './assets/credit.svg';
 // import DebitIcon from './assets/debit.svg';
 // import NFCLogo from './assets/nfc-logo.svg';
@@ -40,6 +41,15 @@ const decodeNdefRecord = record => {
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+
+  useEffect(() => {
+    const hide = async () => {
+      await BootSplash.hide({ fade: true });
+      console.log("BootSplash has been hidden successfully");
+    }
+    hide()
+  }, [])
+
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
