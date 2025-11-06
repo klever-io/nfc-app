@@ -68,6 +68,8 @@ function AppContent() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null); // novo estado
   const [saldo, setSaldo] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   useEffect(() => {
     const checkIsSupported = async () => {
@@ -102,16 +104,20 @@ function AppContent() {
     setNfcContent(null);
     setLoading(true);
     setShowSuccess(false);
+    setShowDetails(false);
     try {
       const result = await simulateNfcService();
       if (result.success) {
         setLoading(false);
         setShowSuccess(true);
+        // Gera hash simples
+        const hash = Math.random().toString(36).substring(2, 12).toUpperCase();
+        setTransactionHash(hash);
         setTimeout(() => {
           setShowSuccess(false);
-        }, 4000); // tela de sucesso por 4s
+          setShowDetails(true);
+        }, 4000); // tela de sucesso por 4s, depois mostra detalhes
         setNfcContent('Leitura NFC simulada com sucesso!');
-        // Alert.alert('NFC', 'Leitura NFC simulada com sucesso!'); // removido
         return;
       }
     } catch (error) {
@@ -177,14 +183,23 @@ function AppContent() {
       {/* <View style={styles.logoContainer}>
         <NFCLogo width={80} height={80} />
       </View> */}
-      <View style={styles.saldoContainer}>
-        <Text style={styles.saldoLabel}>Amount to pay</Text>
-        <Text style={styles.saldoValor}>R$ {saldo.toFixed(2)}</Text>
-      </View>
+      {/* Remover saldo da tela de detalhes */}
+      {!showDetails && (
+        <View style={styles.saldoContainer}>
+          <Text style={styles.saldoLabel}>Amount to pay</Text>
+          <Text style={styles.saldoValor}>R$ {saldo.toFixed(2)}</Text>
+        </View>
+      )}
       {/* {!loading && (
         <Text style={styles.transacoesTitulo}>Transações recentes</Text>
       )} */}
-      {showSuccess ? (
+      {showDetails ? (
+        <TransactionDetails
+          transaction={transactions.find(t => t.id === selectedId)}
+          hash={transactionHash}
+          onBack={() => setShowDetails(false)}
+        />
+      ) : showSuccess ? (
         <SuccessScreen />
       ) : loading ? (
         <View style={styles.loadingBox}>
@@ -226,29 +241,31 @@ function AppContent() {
         />
       )}
       {/* NFC Button fixo no fim da tela */}
-      <View
-        style={[
-          styles.nfcButtonWrapperRow,
-          {
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: safeAreaInsets.bottom + 16,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
-          onPress={fakeReadTag}
-          activeOpacity={0.8}
+      {!showDetails && (
+        <View
+          style={[
+            styles.nfcButtonWrapperRow,
+            {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: safeAreaInsets.bottom + 16,
+            },
+          ]}
         >
-          {isValidate ? (
-            <Text style={styles.nfcButtonText}>Reading Card</Text>
-          ) : (
-            <Text style={styles.nfcButtonText}>Start Checkout</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.nfcButton, styles.nfcButtonFlex, { marginLeft: 12 }]}
+            onPress={fakeReadTag}
+            activeOpacity={0.8}
+          >
+            {isValidate ? (
+              <Text style={styles.nfcButtonText}>Reading Card</Text>
+            ) : (
+              <Text style={styles.nfcButtonText}>Start Checkout</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
       {nfcContent && (
         <View style={styles.nfcContentBox}>
           <Text style={styles.nfcContentLabel}>Conteúdo lido via NFC:</Text>
@@ -284,6 +301,57 @@ function SuccessScreen() {
     <View style={styles.successBox}>
       <View style={[styles.successCircle, { transform: [{ scale }] }]} />
       <Text style={styles.successText}>Pagamento efetuado com sucesso!</Text>
+    </View>
+  );
+}
+
+// Componente de detalhes da transação
+function TransactionDetails({
+  transaction,
+  hash,
+  onBack,
+}: {
+  transaction?: { id: string; title: string; amount: number };
+  hash: string | null;
+  onBack: () => void;
+}) {
+  if (!transaction) return null;
+  const date = new Date().toLocaleDateString();
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        paddingTop: 48,
+      }}
+    >
+      <Text style={[styles.detailsSuccessTitle, { marginTop: 24 }]}>
+        Transação efetuada com sucesso!
+      </Text>
+      <View style={[styles.detailsBox, { marginTop: 24 }]}>
+        <Text style={styles.detailsTitle}>Detalhes da Transação</Text>
+        <Text style={styles.detailsLabel}>Item:</Text>
+        <Text style={styles.detailsValue}>{transaction.title}</Text>
+        <Text style={styles.detailsLabel}>Valor:</Text>
+        <Text style={styles.detailsValue}>
+          R$ {transaction.amount.toFixed(2)}
+        </Text>
+        <Text style={styles.detailsLabel}>Data:</Text>
+        <Text style={styles.detailsValue}>{date}</Text>
+        <Text style={styles.detailsLabel}>Hash:</Text>
+        <Text style={styles.detailsValue}>{hash}</Text>
+      </View>
+      <View
+        style={[
+          styles.detailsButtonWrapper,
+          { position: 'absolute', left: 0, right: 0, bottom: 32 },
+        ]}
+      >
+        <TouchableOpacity style={styles.detailsButton} onPress={onBack}>
+          <Text style={styles.detailsButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -453,6 +521,58 @@ const styles = StyleSheet.create({
   successText: {
     fontSize: 20,
     color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  detailsBox: {
+    backgroundColor: '#23263A',
+    borderRadius: 16,
+    padding: 32,
+    marginVertical: 0,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    minWidth: 280,
+    maxWidth: 340,
+  },
+  detailsSuccessTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#34C759',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  detailsTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2DE2E6',
+    marginBottom: 18,
+  },
+  detailsLabel: {
+    fontSize: 16,
+    color: '#A1A7BB',
+    marginTop: 8,
+  },
+  detailsValue: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  detailsButtonWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailsButton: {
+    marginTop: 0,
+    backgroundColor: '#2DE2E6',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 32,
+    width: '100%',
+  },
+  detailsButtonText: {
+    color: '#181A20',
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
