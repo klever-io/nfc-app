@@ -11,24 +11,25 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import NfcManager, { NfcEvents, NfcTech, Ndef } from 'react-native-nfc-manager';
 import BootSplash from 'react-native-bootsplash';
-// import CreditIcon from './assets/credit.svg';
-// import DebitIcon from './assets/debit.svg';
-// import NFCLogo from './assets/nfc-logo.svg';
 
 const transactions = [
   { id: '1', title: 'Parking Lot', amount: 200.0 },
   { id: '2', title: 'Gas', amount: 50.25 },
   { id: '3', title: 'Coffee', amount: 8.5 },
   { id: '4', title: 'Toll', amount: 18.5 },
+  { id: 'recharge', title: 'Recarga de Cartão', amount: 0 },
 ];
 
-const decodeNdefRecord = record => {
+// Remover hooks do escopo global, mover para AppContent
+
+const decodeNdefRecord = (record: any) => {
   if (Ndef.isType(record, Ndef.TNF_WELL_KNOWN, Ndef.RTD_TEXT)) {
     return ['text', Ndef.text.decodePayload(record.payload)];
   }
@@ -41,6 +42,24 @@ const decodeNdefRecord = record => {
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrCodeValue, setQrCodeValue] = useState('');
+  const [rechargeLoading, setRechargeLoading] = useState(false);
+  // Simula leitura do cartão para recarga
+  const handleRecharge = async () => {
+    setRechargeLoading(true);
+    try {
+      const { readCardForRecharge } = await import('./service/nfcService');
+      const result = await readCardForRecharge();
+      setQrCodeValue(`https://recarga.exemplo.com/card?id=${result.cardId}`);
+      setShowQrModal(true);
+    } catch (err) {
+      setQrCodeValue('Erro ao ler cartão');
+      setShowQrModal(true);
+    } finally {
+      setRechargeLoading(false);
+    }
+  };
 
   useEffect(() => {
     const hide = async () => {
@@ -53,12 +72,32 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      <AppContent
+        handleRecharge={handleRecharge}
+        showQrModal={showQrModal}
+        qrCodeValue={qrCodeValue}
+        setShowQrModal={setShowQrModal}
+        rechargeLoading={rechargeLoading}
+      />
     </SafeAreaProvider>
   );
 }
 
-function AppContent() {
+export type AppContentProps = {
+  handleRecharge: () => void;
+  showQrModal: boolean;
+  qrCodeValue: string;
+  setShowQrModal: React.Dispatch<React.SetStateAction<boolean>>;
+  rechargeLoading: boolean;
+};
+
+function AppContent({
+  handleRecharge,
+  showQrModal,
+  qrCodeValue,
+  setShowQrModal,
+  rechargeLoading,
+}: AppContentProps) {
   const safeAreaInsets = useSafeAreaInsets();
   const [hasNFC, setHasNFC] = useState(false);
   const [nfcIsEnabled, setNfcIsEnabled] = useState(false);
@@ -221,29 +260,46 @@ function AppContent() {
           keyExtractor={item => item.id}
           style={styles.lista}
           contentContainerStyle={{ paddingBottom: 32 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.transacaoItem,
-                item.id === selectedId && styles.transacaoItemSelected,
-              ]}
-              onPress={() => handleTransactionPress(item)}
-            >
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.transacaoTitulo}>{item.title}</Text>
-              </View>
-              <Text
-                style={[
-                  styles.transacaoValor,
-                  item.id === selectedId
-                    ? { color: '#fff' }
-                    : { color: item.amount < 0 ? '#FF3B30' : '#34C759' },
-                ]}
+          renderItem={({ item }) =>
+            item.id === 'recharge' ? (
+              <TouchableOpacity
+                style={styles.rechargeItem}
+                onPress={handleRecharge}
+                disabled={rechargeLoading}
               >
-                R$ {item.amount.toFixed(2)}
-              </Text>
-            </TouchableOpacity>
-          )}
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.rechargeTitle}>{item.title}</Text>
+                </View>
+                {rechargeLoading ? (
+                  <Text style={styles.rechargeIcon}>⏳</Text>
+                ) : (
+                  <Text style={styles.rechargeIcon}>🔄</Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.transacaoItem,
+                  item.id === selectedId && styles.transacaoItemSelected,
+                ]}
+                onPress={() => handleTransactionPress(item)}
+              >
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.transacaoTitulo}>{item.title}</Text>
+                </View>
+                <Text
+                  style={[
+                    styles.transacaoValor,
+                    item.id === selectedId
+                      ? { color: '#fff' }
+                      : { color: item.amount < 0 ? '#FF3B30' : '#34C759' },
+                  ]}
+                >
+                  R$ {item.amount.toFixed(2)}
+                </Text>
+              </TouchableOpacity>
+            )
+          }
         />
       )}
       {/* NFC Button fixo no fim da tela - removido na tela de sucesso */}
@@ -278,10 +334,23 @@ function AppContent() {
           </TouchableOpacity>
         </View>
       )}
-      {nfcContent && (
-        <View style={styles.nfcContentBox}>
-          <Text style={styles.nfcContentLabel}>Conteúdo lido via NFC:</Text>
-          <Text style={styles.nfcContentText}>{nfcContent}</Text>
+      {/* Modal QRCode sempre fora do fluxo da lista para garantir sobreposição */}
+      {showQrModal && (
+        <View style={styles.qrModalCentered}>
+          <View style={styles.qrBox}>
+            <Text style={styles.qrTitle}>
+              Escaneie o QRCode para recarregar
+            </Text>
+            <View style={styles.qrFakeCode}>
+              <QRCode value={qrCodeValue || ' '} size={180} backgroundColor="#2DE2E6" color="#181A20" />
+            </View>
+            <TouchableOpacity
+              style={styles.qrButton}
+              onPress={() => setShowQrModal(false)}
+            >
+              <Text style={styles.qrButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
       {/* Modal de falha */}
@@ -395,6 +464,80 @@ function TransactionDetails({
 }
 
 const styles = StyleSheet.create({
+  rechargeItem: {
+    backgroundColor: '#2DE2E6',
+    borderRadius: 12,
+    padding: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#34C759',
+    shadowColor: '#2DE2E6',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  rechargeTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#181A20',
+  },
+  rechargeIcon: {
+    fontSize: 24,
+    marginLeft: 8,
+    color: '#181A20',
+  },
+  qrModalCentered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+    backgroundColor: 'rgba(24,26,32,0.85)',
+  },
+  qrBox: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    minWidth: 280,
+    maxWidth: 340,
+  },
+  qrTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#181A20',
+    marginBottom: 18,
+    textAlign: 'center',
+  },
+  qrFakeCode: {
+    backgroundColor: '#2DE2E6',
+    borderRadius: 8,
+    padding: 24,
+    marginBottom: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 180,
+  },
+  qrButton: {
+    backgroundColor: '#2DE2E6',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 32,
+    width: '100%',
+  },
+  qrButtonText: {
+    color: '#181A20',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   failureModalCentered: {
     flex: 1,
     justifyContent: 'center',
