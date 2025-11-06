@@ -66,6 +66,8 @@ function AppContent() {
   const [nfcContent, setNfcContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [failureMessage, setFailureMessage] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null); // novo estado
   const [saldo, setSaldo] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
@@ -106,9 +108,9 @@ function AppContent() {
     setShowSuccess(false);
     setShowDetails(false);
     try {
-      const result = await simulateNfcService();
+      const result = await simulateNfcService(selectedId || undefined);
+      setLoading(false);
       if (result.success) {
-        setLoading(false);
         setShowSuccess(true);
         // Gera hash simples
         const hash = Math.random().toString(36).substring(2, 12).toUpperCase();
@@ -119,12 +121,16 @@ function AppContent() {
         }, 4000); // tela de sucesso por 4s, depois mostra detalhes
         setNfcContent('Leitura NFC simulada com sucesso!');
         return;
+      } else {
+        setFailureMessage(
+          result.error || 'Não foi possível efetuar a transação.',
+        );
+        setShowFailureModal(true);
       }
     } catch (error) {
-      setNfcContent('Falha na simulação do serviço NFC');
-      Alert.alert('NFC', 'Falha na simulação do serviço NFC');
+      setFailureMessage('Falha inesperada na simulação do serviço NFC');
+      setShowFailureModal(true);
     }
-    setLoading(false);
   };
 
   const handleTransactionPress = (item: (typeof transactions)[0]) => {
@@ -278,6 +284,30 @@ function AppContent() {
           <Text style={styles.nfcContentText}>{nfcContent}</Text>
         </View>
       )}
+      {/* Modal de falha */}
+      {showFailureModal && (
+        <View style={styles.failureModalCentered}>
+          <View style={styles.failureBox}>
+            <Text style={styles.failureTitle}>Falha na transação</Text>
+            <Text style={styles.failureMessage}>{failureMessage}</Text>
+            <TouchableOpacity
+              style={styles.failureButton}
+              onPress={() => {
+                setShowFailureModal(false);
+                setShowSuccess(false);
+                setShowDetails(false);
+                setLoading(false);
+                setSelectedId(null);
+                setSaldo(0);
+                setTransactionHash(null);
+                setNfcContent(null);
+              }}
+            >
+              <Text style={styles.failureButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -365,6 +395,52 @@ function TransactionDetails({
 }
 
 const styles = StyleSheet.create({
+  failureModalCentered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 20,
+    backgroundColor: 'rgba(24,26,32,0.85)',
+  },
+  failureBox: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    minWidth: 280,
+    maxWidth: 340,
+  },
+  failureTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  failureMessage: {
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 18,
+    textAlign: 'center',
+  },
+  failureButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 32,
+    width: '100%',
+  },
+  failureButtonText: {
+    color: '#FF3B30',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   successModalCentered: {
     flex: 1,
     justifyContent: 'center',

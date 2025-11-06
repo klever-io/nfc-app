@@ -1,9 +1,13 @@
 // service/nfcService.ts
 
-export async function simulateNfcService(): Promise<{ success: boolean }> {
+export async function simulateNfcService(selectedId?: string): Promise<{ success: boolean; error?: string }> {
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve({ success: true });
+      if (selectedId === '3') {
+        resolve({ success: false, error: 'Falha na comunicação com o serviço NFC para Coffee.' });
+      } else {
+        resolve({ success: true });
+      }
     }, 4000);
   });
 }
