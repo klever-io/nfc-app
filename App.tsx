@@ -21,8 +21,8 @@ import BootSplash from 'react-native-bootsplash';
 
 const transactions = [
   { id: '1', title: 'Parking Lot', amount: 200.0 },
-  { id: 'balance', title: 'Balance', amount: 0 },
-  { id: 'recharge', title: 'Recharge', amount: 0 },
+  { id: 'balance', title: 'Check my Balance', amount: 0 },
+  { id: 'recharge', title: 'Recharge my Card', amount: 0 },
 ];
 
 // Remover hooks do escopo global, mover para AppContent
@@ -199,7 +199,7 @@ function App() {
               <QRCode
                 value={qrCodeValue || ' '}
                 size={180}
-                backgroundColor="#2DE2E6"
+                backgroundColor="#fff"
                 color="#181A20"
               />
             </View>
@@ -542,7 +542,7 @@ function AppContent({
       {showFailureModal && (
         <View style={styles.failureModalCentered}>
           <View style={styles.failureBox}>
-            <Text style={styles.failureTitle}>Falha na transação</Text>
+            <Text style={styles.failureTitle}>Transaction Failed</Text>
             <Text style={styles.failureMessage}>{failureMessage}</Text>
             <TouchableOpacity
               style={styles.failureButton}
@@ -557,7 +557,7 @@ function AppContent({
                 setNfcContent(null);
               }}
             >
-              <Text style={styles.failureButtonText}>Fechar</Text>
+              <Text style={styles.failureButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -647,24 +647,18 @@ function TransactionDetails({
 
 const styles = StyleSheet.create({
   rechargeItem: {
-    backgroundColor: '#2DE2E6',
-    borderRadius: 12,
+    backgroundColor: '#161616',
+    borderRadius: 32,
     padding: 26,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#34C759',
-    shadowColor: '#2DE2E6',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#fff',
   },
   rechargeTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#181A20',
+    color: '#fff',
   },
   rechargeIcon: {
     fontSize: 24,
@@ -699,7 +693,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   qrFakeCode: {
-    backgroundColor: '#2DE2E6',
+    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 24,
     marginBottom: 18,
@@ -708,14 +702,14 @@ const styles = StyleSheet.create({
     minWidth: 180,
   },
   qrButton: {
-    backgroundColor: '#2DE2E6',
+    backgroundColor: '#161616',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 32,
     width: '100%',
   },
   qrButtonText: {
-    color: '#181A20',
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -730,7 +724,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 20,
-    backgroundColor: 'rgba(24,26,32,0.85)',
+    backgroundColor: '#161616',
   },
   failureBox: {
     backgroundColor: '#FF3B30',
@@ -776,10 +770,10 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 10,
-    backgroundColor: 'rgba(24,26,32,0.85)',
+    backgroundColor: '#161616',
   },
   cardBox: {
-    backgroundColor: '#23263A',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -791,7 +785,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: {
-    color: '#2DE2E6',
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
@@ -803,7 +797,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   nfcButtonFlex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#181A20', paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: '#0E0E0E', paddingHorizontal: 20 },
   logoContainer: { alignItems: 'center', marginTop: 24, marginBottom: 16 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#2DE2E6', marginTop: 8 },
   saldoContainer: {
@@ -819,15 +813,16 @@ const styles = StyleSheet.create({
     elevation: 1,
     marginTop: 40, // margem superior para afastar do topo
   },
-  saldoLabel: { fontSize: 16, color: '#A1A7BB' },
+  saldoLabel: { fontSize: 16, color: '#A1A7BB', fontFamily: 'Manrope-Regular' },
   saldoValor: {
     fontSize: 54,
     fontWeight: 'bold',
-    color: '#2DE2E6',
+    color: '#fff',
     marginTop: 0,
     letterSpacing: 1.2,
     textAlign: 'center',
     marginBottom: 18,
+    fontFamily: 'Manrope-Regular',
   },
   transacoesTitulo: {
     fontSize: 18,
@@ -887,17 +882,22 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   transacaoItem: {
-    backgroundColor: '#23263A',
-    borderRadius: 12,
+    backgroundColor: '#161616',
     padding: 26,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    borderRadius: 60,
+    width: '100%',
+    borderColor: '#fff',
+    borderWidth: 1,
   },
   transacaoItemSelected: {
-    backgroundColor: '#23263A',
-    borderWidth: 2,
+    backgroundColor: '#161616',
+    borderRadius: 60,
+    width: '100%',
     borderColor: '#fff',
+    borderWidth: 1,
   },
   transacaoIconeArea: {
     width: 32,
@@ -905,22 +905,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  transacaoTitulo: { fontSize: 16, fontWeight: '500', color: '#fff' },
+  transacaoTitulo: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#fff',
+    fontFamily: 'Manrope-Regular',
+  },
   transacaoData: { fontSize: 13, color: '#A1A7BB', marginTop: 2 },
-  transacaoValor: { fontSize: 16, fontWeight: 'bold', color: '#2DE2E6' },
+  transacaoValor: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2DE2E6',
+    fontFamily: 'Manrope-Regular',
+  },
   loadingBox: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
     marginVertical: 24,
-    backgroundColor: '#23263A',
+    backgroundColor: '#161616',
     borderRadius: 16,
   },
   loadingText: {
     fontSize: 18,
-    color: '#2DE2E6',
-    fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 8,
+    fontFamily: 'Manrope-Regular',
   },
   successBox: {
     alignItems: 'center',
@@ -929,6 +939,7 @@ const styles = StyleSheet.create({
     marginVertical: 24,
     backgroundColor: '#34C759',
     borderRadius: 16,
+    width: 280,
   },
   successCircle: {
     width: 64,
@@ -944,16 +955,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     textAlign: 'center',
+    fontFamily: 'Manrope-Regular',
   },
   detailsBox: {
-    backgroundColor: '#23263A',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 32,
     marginVertical: 0,
     alignItems: 'flex-start',
     justifyContent: 'center',
-    minWidth: 280,
-    maxWidth: 340,
+    minWidth: 380,
+    maxWidth: '100%',
   },
   detailsSuccessTitle: {
     fontSize: 24,
@@ -963,21 +975,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   detailsTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#2DE2E6',
+    color: '#fff',
     marginBottom: 18,
+    fontFamily: 'Manrope-Regular',
   },
   detailsLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#A1A7BB',
     marginTop: 8,
+    fontFamily: 'Manrope-Regular',
   },
   detailsValue: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#fff',
     fontWeight: 'bold',
     marginBottom: 4,
+    fontFamily: 'Manrope-Regular',
   },
   detailsButtonWrapper: {
     alignItems: 'center',
@@ -985,14 +1000,16 @@ const styles = StyleSheet.create({
   },
   detailsButton: {
     marginTop: 0,
-    backgroundColor: '#2DE2E6',
+    backgroundColor: '#161616',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 32,
     width: '100%',
+    borderColor: '#fff',
+    borderWidth: 1,
   },
   detailsButtonText: {
-    color: '#181A20',
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
